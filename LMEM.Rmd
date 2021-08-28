@@ -1,0 +1,128 @@
+---
+title: "LMEM"
+author: Bárbara Malcorra
+output:
+  html_document:
+    df_print: paged
+    highlight: tango
+    number_sections: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 4
+    code_folding: show
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+  fontsize: 16pt
+  geometry: margin=1in
+  documentclass: article
+  editor_options: 
+    chunk_output_type: console
+---
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+```
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
+theme_set(theme_bw() +
+          theme(legend.position = "bottom",
+                aspect.ratio = 1))
+
+options(scipen = 999)
+```
+
+
+
+```{r}
+setwd("C:/Users/barba/Desktop/Git/linearMixedEffectModel_R")
+
+dados <- read.csv("LMEM.csv") %>% 
+  mutate_if(is.character, as.factor) %>% 
+  as_tibble()
+
+dados
+```
+
+
+```{r}
+data_score_mean <- dados %>% 
+  group_by(CodLing, Grupo) %>% 
+  summarise(score_mean = mean(score),
+            score_sd = sd(score)) %>% 
+  ungroup()
+```
+
+
+# Visualization
+
+```{r}
+dados %>% 
+  unite(freq1, 
+        anim1, 
+        col = "class", 
+        sep = "_") %>% 
+  pivot_wider(names_from = class,
+              values_from = score) %>% 
+  group_by(CodLing) %>% 
+  summarise(Group = Grupo,
+            LI = sum(low_inanimate, na.rm = TRUE)/60,
+            LA = sum(low_animate, na.rm = TRUE)/60,
+            HI = sum(high_inanimate, na.rm = TRUE)/60,
+            HA = sum(high_animate, na.rm = TRUE)/60) %>% 
+  pivot_longer(cols = c(LI:HA)) %>% 
+  ggplot() +
+  geom_boxplot(aes(name, value, fill = Group))
+```
+
+
+# Linear Mixed Effect Model
+
+```{r}
+library(lmerTest)
+
+# freq & anim <- efeitos fixos
+# CodLing & item <- efeitos aleatórios
+
+# maximal random effects structure
+model1 <- glmer(Grupo ~ freq1 * anim1 + (1+freq1*anim1|CodLing) + (1+anim1|item),
+                family = "binomial",
+                data = dados)
+
+summary(model1)
+# NOT TRUST MODELS THAT DO NOT CONVERGE!
+```
+
+
+```{r}
+model2 <- glmer(Grupo ~ freq1 * anim1 + (1|CodLing) + (0+anim1|CodLing) + (1|item),
+                family = "binomial",
+                data = dados)
+
+summary(model2)
+
+coef_model2 <- coef(model2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
